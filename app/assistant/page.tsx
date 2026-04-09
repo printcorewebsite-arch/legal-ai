@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -30,21 +30,42 @@ type ValidationStatus = "ok" | "warning" | "error" | "empty";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const EMPTY_FORM: FormData = {
-  type: "", name: "", activity: "", address: "",
-  capital: "", director: "", duration: "",
-  actions: "", exerciseStart: "", exerciseEnd: "",
+  type: "",
+  name: "",
+  activity: "",
+  address: "",
+  capital: "",
+  director: "",
+  duration: "",
+  actions: "",
+  exerciseStart: "",
+  exerciseEnd: "",
 };
 
 const FIELD_ORDER: FieldKey[] = [
-  "type", "name", "activity", "address", "capital",
-  "director", "duration", "actions", "exerciseStart", "exerciseEnd",
+  "type",
+  "name",
+  "activity",
+  "address",
+  "capital",
+  "director",
+  "duration",
+  "actions",
+  "exerciseStart",
+  "exerciseEnd",
 ];
 
 const FIELD_LABELS: Record<FieldKey, string> = {
-  type: "Forme juridique", name: "Nom de la société", activity: "Activité principale",
-  address: "Adresse du siège", capital: "Capital social", director: "Dirigeant",
-  duration: "Durée de la société", actions: "Nombre d'actions", 
-  exerciseStart: "Début de l'exercice", exerciseEnd: "Fin de l'exercice",
+  type: "Forme juridique",
+  name: "Nom de la société",
+  activity: "Activité principale",
+  address: "Adresse du siège",
+  capital: "Capital social",
+  director: "Dirigeant",
+  duration: "Durée de la société",
+  actions: "Nombre d'actions",
+  exerciseStart: "Début de l'exercice",
+  exerciseEnd: "Fin de l'exercice",
 };
 
 const FIELD_DESCRIPTIONS: Record<FieldKey, string> = {
@@ -79,7 +100,8 @@ const SELECT_OPTIONS: Partial<Record<FieldKey, string[]>> = {
 
 const INITIAL_MESSAGE: ChatMessage = {
   role: "assistant",
-  content: "Bonjour 👋 Je suis votre assistant juridique. Pour commencer, quelle forme juridique souhaitez-vous créer ? (SASU, SAS, SARL, EURL ou SCI)",
+  content:
+    "Bonjour 👋 Je suis votre assistant juridique. Pour commencer, quelle forme juridique souhaitez-vous créer ? (SASU, SAS, SARL, EURL ou SCI)",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -104,7 +126,10 @@ function getCurrentField(form: FormData): FieldKey {
   return FIELD_ORDER[FIELD_ORDER.length - 1];
 }
 
-function validateField(field: FieldKey, value?: string): { status: ValidationStatus; message: string } {
+function validateField(
+  field: FieldKey,
+  value?: string
+): { status: ValidationStatus; message: string } {
   const text = v(value);
   if (!text) return { status: "empty", message: "À compléter" };
 
@@ -128,7 +153,9 @@ function validateField(field: FieldKey, value?: string): { status: ValidationSta
     }
     case "actions": {
       const n = Number(text.replace(/\s/g, ""));
-      if (!Number.isInteger(n) || n < 1) return { status: "error", message: "Nombre invalide" };
+      if (!Number.isInteger(n) || n < 1) {
+        return { status: "error", message: "Nombre invalide" };
+      }
       return { status: "ok", message: "Valide" };
     }
     case "director":
@@ -138,7 +165,9 @@ function validateField(field: FieldKey, value?: string): { status: ValidationSta
       if (text.length < 8) return { status: "warning", message: "Adresse courte" };
       return { status: "ok", message: "Valide" };
     case "duration":
-      if (!text.toLowerCase().includes("an")) return { status: "warning", message: "Vérifier l'unité" };
+      if (!text.toLowerCase().includes("an")) {
+        return { status: "warning", message: "Vérifier l'unité" };
+      }
       return { status: "ok", message: "Valide" };
     default:
       return { status: "ok", message: "Renseigné" };
@@ -179,6 +208,7 @@ function StatusDot({ status }: { status: ValidationStatus }) {
     error: "#ef4444",
     empty: "#d1d5db",
   };
+
   return (
     <span
       style={{
@@ -221,12 +251,12 @@ function StepIndicator({
                 <span>{index + 1}</span>
               )}
             </div>
+
             <div className="step-content">
               <div className="step-label">{FIELD_LABELS[field]}</div>
-              {isDone && (
-                <div className="step-value">{form[field]}</div>
-              )}
+              {isDone && <div className="step-value">{form[field]}</div>}
             </div>
+
             {isDone && <StatusDot status={validation.status} />}
           </div>
         );
@@ -235,13 +265,19 @@ function StepIndicator({
   );
 }
 
-function ChatBubble({ message, isLast }: { message: ChatMessage; isLast: boolean }) {
+function ChatBubble({
+  message,
+  isLast,
+}: {
+  message: ChatMessage;
+  isLast: boolean;
+}) {
   const isUser = message.role === "user";
+
   return (
     <div className={`bubble-wrapper ${isUser ? "bubble-user" : "bubble-assistant"}`}>
-      {!isUser && (
-        <div className="bubble-avatar">⚖️</div>
-      )}
+      {!isUser && <div className="bubble-avatar">⚖️</div>}
+
       <div className={`bubble ${isUser ? "bubble-sent" : "bubble-received"}`}>
         {!isUser && <div className="bubble-name">Assistant</div>}
         <div className="bubble-text">{message.content}</div>
@@ -257,16 +293,16 @@ function TypingIndicator() {
       <div className="bubble bubble-received">
         <div className="bubble-name">Assistant</div>
         <div className="typing-dots">
-          <span /><span /><span />
+          <span />
+          <span />
+          <span />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-export default function AssistantPage() {
+function AssistantPageContent() {
   const searchParams = useSearchParams();
   const companyId = searchParams.get("id");
 
@@ -288,11 +324,7 @@ export default function AssistantPage() {
     const load = async () => {
       if (companyId) {
         const supabase = createClient();
-        const { data } = await supabase
-          .from("companies")
-          .select("*")
-          .eq("id", companyId)
-          .single();
+        const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
 
         if (data) {
           const normalized = normalizeFromStorage(data);
@@ -310,6 +342,7 @@ export default function AssistantPage() {
         } catch {}
       }
     };
+
     load();
   }, [companyId]);
 
@@ -321,16 +354,15 @@ export default function AssistantPage() {
   const currentField = useMemo(() => getCurrentField(form), [form]);
   const quickReplies = QUICK_REPLIES[currentField] || [];
 
-  const completedCount = useMemo(
-    () => FIELD_ORDER.filter((f) => v(form[f])).length,
-    [form]
-  );
+  const completedCount = useMemo(() => FIELD_ORDER.filter((f) => v(form[f])).length, [form]);
   const progress = Math.round((completedCount / FIELD_ORDER.length) * 100);
 
   const validations = useMemo(
-    () => Object.fromEntries(
-      FIELD_ORDER.map((f) => [f, validateField(f, form[f])])
-    ) as Record<FieldKey, { status: ValidationStatus; message: string }>,
+    () =>
+      Object.fromEntries(FIELD_ORDER.map((f) => [f, validateField(f, form[f])])) as Record<
+        FieldKey,
+        { status: ValidationStatus; message: string }
+      >,
     [form]
   );
 
@@ -347,45 +379,48 @@ export default function AssistantPage() {
     setIsConfirmed(false);
   }, []);
 
-  const sendMessage = useCallback(async (forcedValue?: string) => {
-    const text = (forcedValue ?? input).trim();
-    if (!text || loading) return;
+  const sendMessage = useCallback(
+    async (forcedValue?: string) => {
+      const text = (forcedValue ?? input).trim();
+      if (!text || loading) return;
 
-    const newMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", content: text },
-    ];
+      const newMessages: ChatMessage[] = [...messages, { role: "user", content: text }];
 
-    setMessages(newMessages);
-    setInput("");
-    setLoading(true);
-    setIsConfirmed(false);
+      setMessages(newMessages);
+      setInput("");
+      setLoading(true);
+      setIsConfirmed(false);
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, formData: form }),
-      });
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: newMessages, formData: form }),
+        });
 
-      if (!res.ok) throw new Error("API error");
+        if (!res.ok) throw new Error("API error");
 
-      const data = await res.json();
-      const merged = mergeForm(form, data.extracted || {});
+        const data = await res.json();
+        const merged = mergeForm(form, data.extracted || {});
 
-      setForm(merged);
-      localStorage.setItem("companyData", JSON.stringify(merged));
+        setForm(merged);
+        localStorage.setItem("companyData", JSON.stringify(merged));
 
-      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
-    } catch {
-      setMessages([
-        ...newMessages,
-        { role: "assistant", content: "Une erreur est survenue. Veuillez réessayer." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, [input, messages, form, loading]);
+        setMessages([...newMessages, { role: "assistant", content: data.reply }]);
+      } catch {
+        setMessages([
+          ...newMessages,
+          {
+            role: "assistant",
+            content: "Une erreur est survenue. Veuillez réessayer.",
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [input, messages, form, loading]
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -400,7 +435,9 @@ export default function AssistantPage() {
 
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         alert("Vous devez être connecté.");
@@ -424,18 +461,9 @@ export default function AssistantPage() {
 
       let result;
       if (companyId) {
-        result = await supabase
-          .from("companies")
-          .update(payload)
-          .eq("id", companyId)
-          .select("id")
-          .single();
+        result = await supabase.from("companies").update(payload).eq("id", companyId).select("id").single();
       } else {
-        result = await supabase
-          .from("companies")
-          .insert(payload)
-          .select("id")
-          .single();
+        result = await supabase.from("companies").insert(payload).select("id").single();
       }
 
       if (result.error) throw result.error;
@@ -463,7 +491,6 @@ export default function AssistantPage() {
     localStorage.removeItem("companyData");
   };
 
-  // ── Success screen ──
   if (isSuccess) {
     return (
       <>
@@ -475,8 +502,10 @@ export default function AssistantPage() {
               <span className="success-badge">Dossier enregistré</span>
               <h1 className="success-title">Votre dossier est prêt</h1>
               <p className="success-desc">
-                Les informations ont été sauvegardées. Vous pouvez maintenant consulter et télécharger vos statuts.
+                Les informations ont été sauvegardées. Vous pouvez maintenant consulter et
+                télécharger vos statuts.
               </p>
+
               <div className="success-actions">
                 <button
                   onClick={() => {
@@ -487,13 +516,12 @@ export default function AssistantPage() {
                 >
                   Voir les statuts →
                 </button>
+
                 <button onClick={handleReset} className="btn-secondary btn-md">
                   Nouveau dossier
                 </button>
-                <button
-                  onClick={() => (window.location.href = "/dashboard")}
-                  className="btn-ghost"
-                >
+
+                <button onClick={() => (window.location.href = "/dashboard")} className="btn-ghost">
                   Dashboard
                 </button>
               </div>
@@ -504,12 +532,10 @@ export default function AssistantPage() {
     );
   }
 
-  // ── Main render ──
   return (
     <>
       <style>{assistantStyles}</style>
       <main className="assistant-root">
-        {/* Top banner */}
         <div className="assistant-banner">
           <div className="banner-inner">
             <div className="banner-left">
@@ -532,10 +558,9 @@ export default function AssistantPage() {
                 </svg>
                 <span className="circle-text">{progress}%</span>
               </div>
+
               <div>
-                <h1 className="banner-title">
-                  {form.name || "Nouvelle société"}
-                </h1>
+                <h1 className="banner-title">{form.name || "Nouvelle société"}</h1>
                 <p className="banner-subtitle">
                   {completedCount} / {FIELD_ORDER.length} champs · Étape en cours :{" "}
                   <strong>{FIELD_LABELS[currentField]}</strong>
@@ -544,7 +569,6 @@ export default function AssistantPage() {
             </div>
 
             <div className="banner-right">
-              {/* Mobile tabs */}
               <div className="mobile-tabs">
                 <button
                   onClick={() => setActivePanel("chat")}
@@ -569,42 +593,30 @@ export default function AssistantPage() {
             </div>
           </div>
 
-          {/* Progress bar */}
           <div className="banner-progress-bar">
             <div className="banner-progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
-        {/* Main layout */}
         <div className="assistant-layout">
-          {/* LEFT — Steps */}
           <aside className="panel-steps">
             <div className="panel-header">
               <span className="panel-label">Parcours</span>
               <h2 className="panel-title">Étapes</h2>
             </div>
-            <StepIndicator
-              fields={FIELD_ORDER}
-              form={form}
-              currentField={currentField}
-            />
+
+            <StepIndicator fields={FIELD_ORDER} form={form} currentField={currentField} />
           </aside>
 
-          {/* CENTER — Chat */}
-          <section
-            className={`panel-chat ${activePanel !== "chat" ? "panel-hidden-mobile" : ""}`}
-          >
+          <section className={`panel-chat ${activePanel !== "chat" ? "panel-hidden-mobile" : ""}`}>
             <div className="chat-header">
               <div>
                 <span className="panel-label">Assistant juridique</span>
                 <h2 className="panel-title">Conversation guidée</h2>
               </div>
-              <div className="current-field-badge">
-                {FIELD_LABELS[currentField]}
-              </div>
+              <div className="current-field-badge">{FIELD_LABELS[currentField]}</div>
             </div>
 
-            {/* Messages */}
             <div className="chat-messages">
               {messages.map((msg, i) => (
                 <ChatBubble key={i} message={msg} isLast={i === messages.length - 1} />
@@ -613,7 +625,6 @@ export default function AssistantPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Quick replies */}
             {quickReplies.length > 0 && !loading && (
               <div className="quick-replies">
                 <span className="quick-label">Suggestions</span>
@@ -632,7 +643,6 @@ export default function AssistantPage() {
               </div>
             )}
 
-            {/* Input */}
             <div className="chat-input-area">
               <div className="input-context">
                 <span className="input-context-label">Répondez à :</span>
@@ -659,7 +669,16 @@ export default function AssistantPage() {
                   {loading ? (
                     <span className="spinner" />
                   ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <line x1="22" y1="2" x2="11" y2="13" />
                       <polygon points="22 2 15 22 11 13 2 9 22 2" />
                     </svg>
@@ -668,7 +687,9 @@ export default function AssistantPage() {
               </div>
 
               <div className="input-footer">
-                <span className="input-hint">Entrée pour envoyer · Maj+Entrée pour retour à la ligne</span>
+                <span className="input-hint">
+                  Entrée pour envoyer · Maj+Entrée pour retour à la ligne
+                </span>
                 <button onClick={handleReset} className="reset-btn">
                   Réinitialiser
                 </button>
@@ -676,23 +697,29 @@ export default function AssistantPage() {
             </div>
           </section>
 
-          {/* RIGHT — Form */}
-          <aside
-            className={`panel-form ${activePanel !== "form" ? "panel-hidden-mobile" : ""}`}
-          >
-            {/* Aperçu dossier */}
+          <aside className={`panel-form ${activePanel !== "form" ? "panel-hidden-mobile" : ""}`}>
             <div className="form-card">
               <div className="form-card-header">
                 <div>
                   <span className="panel-label">Dossier client</span>
                   <h2 className="panel-title">Aperçu structuré</h2>
                 </div>
-                <span className={`status-badge ${isConfirmed ? "badge-ok" : hasError ? "badge-error" : "badge-warn"}`}>
-                  {isConfirmed ? "Confirmé" : hasError ? "Incomplet" : completedCount === 10 ? "À vérifier" : "En cours"}
+
+                <span
+                  className={`status-badge ${
+                    isConfirmed ? "badge-ok" : hasError ? "badge-error" : "badge-warn"
+                  }`}
+                >
+                  {isConfirmed
+                    ? "Confirmé"
+                    : hasError
+                      ? "Incomplet"
+                      : completedCount === 10
+                        ? "À vérifier"
+                        : "En cours"}
                 </span>
               </div>
 
-              {/* Fields */}
               <div className="form-fields">
                 {FIELD_ORDER.map((field) => {
                   const val = validations[field];
@@ -702,15 +729,16 @@ export default function AssistantPage() {
                     <div
                       key={field}
                       className={`form-field ${
-                        val.status === "ok" ? "field-ok"
-                        : val.status === "warning" ? "field-warn"
-                        : val.status === "error" ? "field-error"
-                        : "field-empty"
+                        val.status === "ok"
+                          ? "field-ok"
+                          : val.status === "warning"
+                            ? "field-warn"
+                            : val.status === "error"
+                              ? "field-error"
+                              : "field-empty"
                       }`}
                     >
-                      <label className="field-label">
-                        {FIELD_LABELS[field]}
-                      </label>
+                      <label className="field-label">{FIELD_LABELS[field]}</label>
 
                       {hasSelect ? (
                         <select
@@ -720,12 +748,14 @@ export default function AssistantPage() {
                         >
                           <option value="">Sélectionner...</option>
                           {SELECT_OPTIONS[field]!.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
                           ))}
                         </select>
                       ) : (
                         <input
-                          type={field === "capital" ? "text" : "text"}
+                          type="text"
                           value={form[field]}
                           onChange={(e) => updateField(field, e.target.value)}
                           className="field-input"
@@ -733,12 +763,17 @@ export default function AssistantPage() {
                         />
                       )}
 
-                      <div className={`field-validation ${
-                        val.status === "ok" ? "validation-ok"
-                        : val.status === "warning" ? "validation-warn"
-                        : val.status === "error" ? "validation-error"
-                        : "validation-empty"
-                      }`}>
+                      <div
+                        className={`field-validation ${
+                          val.status === "ok"
+                            ? "validation-ok"
+                            : val.status === "warning"
+                              ? "validation-warn"
+                              : val.status === "error"
+                                ? "validation-error"
+                                : "validation-empty"
+                        }`}
+                      >
                         <StatusDot status={val.status} />
                         <span>{val.message}</span>
                       </div>
@@ -747,7 +782,6 @@ export default function AssistantPage() {
                 })}
               </div>
 
-              {/* Actions */}
               <div className="form-actions">
                 <button
                   onClick={() => {
@@ -764,12 +798,15 @@ export default function AssistantPage() {
                   disabled={!isConfirmed || saving}
                   className="btn-secondary btn-full"
                 >
-                  {saving ? "Sauvegarde..." : companyId ? "Mettre à jour & générer" : "Sauvegarder & générer les statuts"}
+                  {saving
+                    ? "Sauvegarde..."
+                    : companyId
+                      ? "Mettre à jour & générer"
+                      : "Sauvegarder & générer les statuts"}
                 </button>
               </div>
             </div>
 
-            {/* Aperçu document */}
             <div className="preview-card">
               <span className="panel-label">Aperçu</span>
               <h3 className="preview-title">{form.type || "—"}</h3>
@@ -783,7 +820,12 @@ export default function AssistantPage() {
                   [meta.manager, form.director],
                   ["Durée", form.duration],
                   [meta.shares, form.actions],
-                  ["Exercice", form.exerciseStart && form.exerciseEnd ? `${form.exerciseStart} → ${form.exerciseEnd}` : ""],
+                  [
+                    "Exercice",
+                    form.exerciseStart && form.exerciseEnd
+                      ? `${form.exerciseStart} → ${form.exerciseEnd}`
+                      : "",
+                  ],
                 ].map(([label, value]) => (
                   <div key={label} className="preview-item">
                     <span className="preview-label">{label}</span>
@@ -796,6 +838,29 @@ export default function AssistantPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function AssistantPage() {
+  return (
+    <Suspense
+      fallback={
+        <>
+          <style>{assistantStyles}</style>
+          <main className="assistant-root">
+            <div className="success-screen">
+              <div className="success-card">
+                <div className="success-icon">⚖️</div>
+                <h1 className="success-title">Chargement...</h1>
+                <p className="success-desc">Préparation de votre assistant juridique.</p>
+              </div>
+            </div>
+          </main>
+        </>
+      }
+    >
+      <AssistantPageContent />
+    </Suspense>
   );
 }
 
